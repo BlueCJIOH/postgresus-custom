@@ -83,6 +83,45 @@ You have three ways to install Postgresus:
 
 ---
 
+## 🧑‍💻 Get Started (Local Development)
+
+The repository is split into a Go backend (`backend/`) and a React + Vite frontend (`frontend/`).
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) with Docker Compose
+- [Go 1.23](https://go.dev/doc/install)
+- [Node.js 20+](https://nodejs.org/en/download/package-manager) and npm
+- GNU Make
+
+### 1. Start the backend API
+
+```bash
+cp backend/.env.example backend/.env
+cp backend/docker-compose.yml.example backend/docker-compose.yml
+cd backend
+docker compose up -d dev-db
+make run
+```
+
+This boots a PostgreSQL instance for development and starts the API on `http://localhost:4005`.
+
+### 2. Run the frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The Vite dev server defaults to `http://localhost:5173` and the frontend will call the backend API at port `4005`.
+
+Once both services are running, open `http://localhost:5173` in your browser, create an admin account, and start configuring backups.
+
+> **Tip:** Before opening a pull request, run `make test` and `make lint` inside `backend/`, and `npm run lint` in `frontend/` to ensure everything still passes.
+
+---
+
 ## 📦 Installation
 
 You have three ways to install Postgresus: automated script (recommended), simple Docker run, or Docker Compose setup.
