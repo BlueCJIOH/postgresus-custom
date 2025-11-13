@@ -160,7 +160,7 @@ func (uc *CreatePostgresqlBackupUsecase) executePgBasebackup(
 	args := []string{
 		"-D", "-", // Stream tar archive to stdout
 		"-F", "t", // Tar format
-		"-X", "stream", // Include WAL files
+		"-X", "fetch", // Fetch required WAL at the end (streaming WAL is incompatible with stdout)
 		"--no-password",
 		"--progress",
 		"--verbose",
@@ -168,7 +168,6 @@ func (uc *CreatePostgresqlBackupUsecase) executePgBasebackup(
 		"-p", strconv.Itoa(pg.Port),
 		"-U", pg.Username,
 	}
-
 	// Enable gzip compression to keep backup sizes reasonable
 	args = append(args, "-z")
 
