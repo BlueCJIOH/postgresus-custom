@@ -18,6 +18,7 @@ func EnableBackupsForTestDatabase(
 		DatabaseID:       databaseID,
 		IsBackupsEnabled: true,
 		StorePeriod:      period.PeriodDay,
+		BackupTool:       BackupToolPgDump,
 		BackupInterval: &intervals.Interval{
 			Interval:  intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,

@@ -56,7 +56,7 @@ build_postgresql_client() {
     echo "Building PostgreSQL $version client tools..."
     
     # Skip if already exists
-    if [ -f "$version_dir/bin/pg_dump" ]; then
+    if [ -f "$version_dir/bin/pg_dump" ] && [ -f "$version_dir/bin/pg_basebackup" ]; then
         echo "PostgreSQL $version already installed, skipping..."
         return
     fi
@@ -92,10 +92,14 @@ build_postgresql_client() {
     # Verify installation
     if [ -f "$version_dir/bin/pg_dump" ]; then
         echo "  PostgreSQL $version client tools installed successfully"
-        
+
         # Test the installation
         local pg_version=$("$version_dir/bin/pg_dump" --version | cut -d' ' -f3)
         echo "  Verified version: $pg_version"
+        if [ -f "$version_dir/bin/pg_basebackup" ]; then
+            local basebackup_version=$("$version_dir/bin/pg_basebackup" --version | cut -d' ' -f3)
+            echo "  Base backup version: $basebackup_version"
+        fi
     else
         echo "  Warning: PostgreSQL $version may not have installed correctly"
     fi

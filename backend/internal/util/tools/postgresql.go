@@ -53,6 +53,7 @@ func VerifyPostgresesInstallation(
 	requiredCommands := []PostgresqlExecutable{
 		PostgresqlExecutablePgDump,
 		PostgresqlExecutablePsql,
+		PostgresqlExecutablePgBasebackup,
 	}
 
 	for _, version := range versions {

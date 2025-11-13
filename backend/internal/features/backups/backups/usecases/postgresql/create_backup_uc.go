@@ -38,20 +38,64 @@ func (uc *CreatePostgresqlBackupUsecase) Execute(
 		completedMBs float64,
 	),
 ) error {
-	uc.logger.Info(
-		"Creating PostgreSQL backup via pg_dump custom format",
-		"databaseId",
-		db.ID,
-		"storageId",
-		storage.ID,
-	)
-
 	if !backupConfig.IsBackupsEnabled {
 		return fmt.Errorf("backups are not enabled for this database: \"%s\"", db.Name)
 	}
 
 	pg := db.Postgresql
 
+	if pg == nil {
+		return fmt.Errorf("postgresql database configuration is required for backups")
+	}
+
+	tool := backupConfig.BackupTool
+	if !tool.IsValid() {
+		tool = backups_config.BackupToolPgDump
+	}
+
+	uc.logger.Info(
+		"Creating PostgreSQL backup",
+		"databaseId",
+		db.ID,
+		"storageId",
+		storage.ID,
+		"tool",
+		tool,
+	)
+
+	switch tool {
+	case backups_config.BackupToolPgDump:
+		return uc.executePgDump(
+			ctx,
+			backupID,
+			backupConfig,
+			db,
+			storage,
+			backupProgressListener,
+		)
+	case backups_config.BackupToolPgBasebackup:
+		return uc.executePgBasebackup(
+			ctx,
+			backupID,
+			backupConfig,
+			db,
+			storage,
+			backupProgressListener,
+		)
+	default:
+		return fmt.Errorf("unsupported backup tool: %s", tool)
+	}
+}
+
+func (uc *CreatePostgresqlBackupUsecase) executePgDump(
+	ctx context.Context,
+	backupID uuid.UUID,
+	backupConfig *backups_config.BackupConfig,
+	db *databases.Database,
+	storage *storages.Storage,
+	backupProgressListener func(completedMBs float64),
+) error {
+	pg := db.Postgresql
 	if pg == nil {
 		return fmt.Errorf("postgresql database configuration is required for pg_dump backups")
 	}
@@ -87,10 +131,11 @@ func (uc *CreatePostgresqlBackupUsecase) Execute(
 		backupConfig,
 		tools.GetPostgresqlExecutable(
 			pg.Version,
-			"pg_dump",
+			tools.PostgresqlExecutablePgDump,
 			config.GetEnv().EnvMode,
 			config.GetEnv().PostgresesInstallDir,
 		),
+		"pg_dump",
 		args,
 		pg.Password,
 		storage,
@@ -99,19 +144,75 @@ func (uc *CreatePostgresqlBackupUsecase) Execute(
 	)
 }
 
-// streamToStorage streams pg_dump output directly to storage
+func (uc *CreatePostgresqlBackupUsecase) executePgBasebackup(
+	ctx context.Context,
+	backupID uuid.UUID,
+	backupConfig *backups_config.BackupConfig,
+	db *databases.Database,
+	storage *storages.Storage,
+	backupProgressListener func(completedMBs float64),
+) error {
+	pg := db.Postgresql
+	if pg == nil {
+		return fmt.Errorf("postgresql database configuration is required for pg_basebackup backups")
+	}
+
+	args := []string{
+		"-D", "-", // Stream tar archive to stdout
+		"-F", "t", // Tar format
+		"-X", "stream", // Include WAL files
+		"--no-password",
+		"--progress",
+		"--verbose",
+		"-h", pg.Host,
+		"-p", strconv.Itoa(pg.Port),
+		"-U", pg.Username,
+	}
+
+	// Enable gzip compression to keep backup sizes reasonable
+	args = append(args, "-z")
+
+	return uc.streamToStorage(
+		ctx,
+		backupID,
+		backupConfig,
+		tools.GetPostgresqlExecutable(
+			pg.Version,
+			tools.PostgresqlExecutablePgBasebackup,
+			config.GetEnv().EnvMode,
+			config.GetEnv().PostgresesInstallDir,
+		),
+		"pg_basebackup",
+		args,
+		pg.Password,
+		storage,
+		db,
+		backupProgressListener,
+	)
+}
+
+// streamToStorage streams PostgreSQL backup tool output directly to storage
 func (uc *CreatePostgresqlBackupUsecase) streamToStorage(
 	parentCtx context.Context,
 	backupID uuid.UUID,
 	backupConfig *backups_config.BackupConfig,
 	pgBin string,
+	commandLabel string,
 	args []string,
 	password string,
 	storage *storages.Storage,
 	db *databases.Database,
 	backupProgressListener func(completedMBs float64),
 ) error {
-	uc.logger.Info("Streaming PostgreSQL backup to storage", "pgBin", pgBin, "args", args)
+	uc.logger.Info(
+		"Streaming PostgreSQL backup to storage",
+		"command",
+		commandLabel,
+		"pgBin",
+		pgBin,
+		"args",
+		args,
+	)
 
 	// if backup not fit into 23 hours, Postgresus
 	// seems not to work for such database size
@@ -237,7 +338,7 @@ func (uc *CreatePostgresqlBackupUsecase) streamToStorage(
 		stderrCh <- stderrOutput
 	}()
 
-	// A pipe connecting pg_dump output → storage
+	// A pipe connecting backup command output → storage
 	storageReader, storageWriter := io.Pipe()
 
 	// Create a counting writer to track bytes
@@ -251,7 +352,7 @@ func (uc *CreatePostgresqlBackupUsecase) streamToStorage(
 		saveErrCh <- storage.SaveFile(uc.logger, backupID, storageReader)
 	}()
 
-	// Start pg_dump
+	// Start PostgreSQL backup command
 	if err = cmd.Start(); err != nil {
 		return fmt.Errorf("start %s: %w", filepath.Base(pgBin), err)
 	}
@@ -336,7 +437,8 @@ func (uc *CreatePostgresqlBackupUsecase) streamToStorage(
 
 			// Enhanced debugging for exit status 1 with empty stderr
 			if exitCode == 1 && strings.TrimSpace(stderrStr) == "" {
-				uc.logger.Error("pg_dump failed with exit status 1 but no stderr output",
+				uc.logger.Error("PostgreSQL backup command failed with exit status 1 but no stderr output",
+					"command", commandLabel,
 					"pgBin", pgBin,
 					"args", args,
 					"env_vars", []string{

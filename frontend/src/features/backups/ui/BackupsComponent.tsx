@@ -17,6 +17,7 @@ import {
   type Backup,
   type BackupConfig,
   BackupStatus,
+  BackupTool,
   backupConfigApi,
   backupsApi,
 } from '../../../entity/backups';
@@ -26,6 +27,11 @@ import { ConfirmationComponent } from '../../../shared/ui';
 import { RestoresComponent } from '../../restores';
 
 const BACKUPS_PAGE_SIZE = 50;
+
+const backupToolLabel: Record<BackupTool, string> = {
+  [BackupTool.PG_DUMP]: 'pg_dump (custom format)',
+  [BackupTool.PG_BASEBACKUP]: 'pg_basebackup (cluster archive)',
+};
 
 interface Props {
   database: Database;
@@ -72,7 +78,9 @@ export const BackupsComponent = ({ database, isCanManageDBs, scrollContainerRef 
       // Find the backup to get a meaningful filename
       const backup = backups.find((b) => b.id === backupId);
       const createdAt = backup ? dayjs(backup.createdAt).format('YYYY-MM-DD_HH-mm-ss') : 'backup';
-      link.download = `${database.name}_backup_${createdAt}.dump`;
+      const extension =
+        backup?.backupTool === BackupTool.PG_BASEBACKUP ? 'tar.gz' : 'dump';
+      link.download = `${database.name}_backup_${createdAt}.${extension}`;
 
       // Trigger download
       document.body.appendChild(link);
@@ -376,6 +384,20 @@ export const BackupsComponent = ({ database, isCanManageDBs, scrollContainerRef 
       onFilter: (value, record) => record.status === value,
     },
     {
+      title: 'Method',
+      dataIndex: 'backupTool',
+      key: 'backupTool',
+      render: (tool: BackupTool) => backupToolLabel[tool] ?? tool,
+      filters: [
+        { value: BackupTool.PG_DUMP, text: backupToolLabel[BackupTool.PG_DUMP] },
+        {
+          value: BackupTool.PG_BASEBACKUP,
+          text: backupToolLabel[BackupTool.PG_BASEBACKUP],
+        },
+      ],
+      onFilter: (value, record) => record.backupTool === value,
+    },
+    {
       title: (
         <div className="flex items-center">
           Size
@@ -460,19 +482,33 @@ export const BackupsComponent = ({ database, isCanManageDBs, scrollContainerRef 
                       </Tooltip>
                     )}
 
-                    <Tooltip title="Restore from backup">
-                      <CloudUploadOutlined
-                        className="cursor-pointer"
-                        onClick={() => {
-                          setShowingRestoresBackupId(record.id);
-                        }}
-                        style={{
-                          color: '#155dfc',
-                        }}
-                      />
-                    </Tooltip>
+                    {record.backupTool === BackupTool.PG_BASEBACKUP ? (
+                      <Tooltip title="Automated restore is not available for pg_basebackup archives. Use manual restore tools.">
+                        <CloudUploadOutlined
+                          style={{ color: '#155dfc', opacity: 0.3, cursor: 'not-allowed' }}
+                        />
+                      </Tooltip>
+                    ) : (
+                      <Tooltip title="Restore from backup">
+                        <CloudUploadOutlined
+                          className="cursor-pointer"
+                          onClick={() => {
+                            setShowingRestoresBackupId(record.id);
+                          }}
+                          style={{
+                            color: '#155dfc',
+                          }}
+                        />
+                      </Tooltip>
+                    )}
 
-                    <Tooltip title="Download backup file. It can be restored manually via pg_restore (from custom format)">
+                    <Tooltip
+                      title={
+                        record.backupTool === BackupTool.PG_BASEBACKUP
+                          ? 'Download pg_basebackup archive (.tar.gz). Restore manually using PostgreSQL base backup tools.'
+                          : 'Download backup file. It can be restored manually via pg_restore (custom format).'
+                      }
+                    >
                       {downloadingBackupId === record.id ? (
                         <SyncOutlined spin style={{ color: '#155dfc' }} />
                       ) : (
