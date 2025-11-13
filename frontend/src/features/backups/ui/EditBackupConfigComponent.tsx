@@ -13,7 +13,7 @@ import {
 import dayjs, { Dayjs } from 'dayjs';
 import { useEffect, useMemo, useState } from 'react';
 
-import { type BackupConfig, backupConfigApi } from '../../../entity/backups';
+import { type BackupConfig, BackupTool, backupConfigApi } from '../../../entity/backups';
 import { BackupNotificationType } from '../../../entity/backups/model/BackupNotificationType';
 import type { Database } from '../../../entity/databases';
 import { Period } from '../../../entity/databases/model/Period';
@@ -51,6 +51,11 @@ const weekdayOptions = [
   { value: 5, label: 'Fri' },
   { value: 6, label: 'Sat' },
   { value: 7, label: 'Sun' },
+];
+
+const backupToolOptions = [
+  { value: BackupTool.PG_DUMP, label: 'pg_dump (custom format)' },
+  { value: BackupTool.PG_BASEBACKUP, label: 'pg_basebackup (cluster archive)' },
 ];
 
 export const EditBackupConfigComponent = ({
@@ -134,7 +139,10 @@ export const EditBackupConfigComponent = ({
   useEffect(() => {
     if (database.id) {
       backupConfigApi.getBackupConfigByDbID(database.id).then((res) => {
-        setBackupConfig(res);
+        setBackupConfig({
+          ...res,
+          backupTool: res.backupTool ?? BackupTool.PG_DUMP,
+        });
         setIsUnsaved(false);
         setIsSaving(false);
       });
@@ -153,6 +161,7 @@ export const EditBackupConfigComponent = ({
         sendNotificationsOn: [],
         isRetryIfFailed: true,
         maxFailedTriesCount: 3,
+        backupTool: BackupTool.PG_DUMP,
       });
     }
     loadStorages();
@@ -193,6 +202,7 @@ export const EditBackupConfigComponent = ({
   const isAllFieldsFilled =
     !backupConfig.isBackupsEnabled ||
     (Boolean(backupConfig.storePeriod) &&
+      Boolean(backupConfig.backupTool) &&
       Boolean(backupConfig.storage?.id) &&
       Boolean(backupConfig.cpuCount) &&
       Boolean(backupInterval?.interval) &&
@@ -292,6 +302,24 @@ export const EditBackupConfigComponent = ({
               />
             </div>
           )}
+
+          <div className="mb-1 flex w-full items-center">
+            <div className="min-w-[150px]">Backup method</div>
+            <Select
+              value={backupConfig.backupTool}
+              onChange={(value) => updateBackupConfig({ backupTool: value })}
+              size="small"
+              className="max-w-[280px] grow"
+              options={backupToolOptions}
+            />
+
+            <Tooltip
+              className="ml-2 cursor-pointer"
+              title="pg_dump creates a compressed logical backup that can be restored into newer PostgreSQL versions. pg_basebackup streams a physical cluster copy and requires replication access."
+            >
+              <InfoCircleOutlined style={{ color: 'gray' }} />
+            </Tooltip>
+          </div>
 
           <div className="mt-4 mb-1 flex w-full items-center">
             <div className="min-w-[150px]">Retry backup if failed</div>

@@ -98,14 +98,15 @@ func Test_SaveBackupConfig_PermissionsEnforced(t *testing.T) {
 			}
 
 			timeOfDay := "04:00"
-			request := BackupConfig{
-				DatabaseID:       database.ID,
-				IsBackupsEnabled: true,
-				StorePeriod:      period.PeriodWeek,
-				BackupInterval: &intervals.Interval{
-					Interval:  intervals.IntervalDaily,
-					TimeOfDay: &timeOfDay,
-				},
+                        request := BackupConfig{
+                                DatabaseID:       database.ID,
+                                IsBackupsEnabled: true,
+                                StorePeriod:      period.PeriodWeek,
+                                BackupTool:       BackupToolPgDump,
+                                BackupInterval: &intervals.Interval{
+                                        Interval:  intervals.IntervalDaily,
+                                        TimeOfDay: &timeOfDay,
+                                },
 				SendNotificationsOn: []BackupNotificationType{
 					NotificationBackupFailed,
 				},
@@ -125,14 +126,15 @@ func Test_SaveBackupConfig_PermissionsEnforced(t *testing.T) {
 				&response,
 			)
 
-			if tt.expectSuccess {
-				assert.Equal(t, database.ID, response.DatabaseID)
-				assert.True(t, response.IsBackupsEnabled)
-				assert.Equal(t, period.PeriodWeek, response.StorePeriod)
-				assert.Equal(t, 2, response.CpuCount)
-			} else {
-				assert.Contains(t, string(testResp.Body), "insufficient permissions")
-			}
+                        if tt.expectSuccess {
+                                assert.Equal(t, database.ID, response.DatabaseID)
+                                assert.True(t, response.IsBackupsEnabled)
+                                assert.Equal(t, period.PeriodWeek, response.StorePeriod)
+                                assert.Equal(t, BackupToolPgDump, response.BackupTool)
+                                assert.Equal(t, 2, response.CpuCount)
+                        } else {
+                                assert.Contains(t, string(testResp.Body), "insufficient permissions")
+                        }
 		})
 	}
 }
@@ -147,14 +149,15 @@ func Test_SaveBackupConfig_WhenUserIsNotWorkspaceMember_ReturnsForbidden(t *test
 	nonMember := users_testing.CreateTestUser(users_enums.UserRoleMember)
 
 	timeOfDay := "04:00"
-	request := BackupConfig{
-		DatabaseID:       database.ID,
-		IsBackupsEnabled: true,
-		StorePeriod:      period.PeriodWeek,
-		BackupInterval: &intervals.Interval{
-			Interval:  intervals.IntervalDaily,
-			TimeOfDay: &timeOfDay,
-		},
+                        request := BackupConfig{
+                                DatabaseID:       database.ID,
+                                IsBackupsEnabled: true,
+                                StorePeriod:      period.PeriodWeek,
+                                BackupTool:       BackupToolPgDump,
+                                BackupInterval: &intervals.Interval{
+                                        Interval:  intervals.IntervalDaily,
+                                        TimeOfDay: &timeOfDay,
+                                },
 		SendNotificationsOn: []BackupNotificationType{
 			NotificationBackupFailed,
 		},

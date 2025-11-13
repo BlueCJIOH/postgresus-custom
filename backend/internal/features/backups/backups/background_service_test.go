@@ -52,6 +52,8 @@ func Test_MakeBackupForDbHavingBackupDayAgo_BackupCreated(t *testing.T) {
 
 		Status: BackupStatusCompleted,
 
+		BackupTool: backups_config.BackupToolPgDump,
+
 		CreatedAt: time.Now().UTC().Add(-24 * time.Hour),
 	})
 
@@ -112,6 +114,8 @@ func Test_MakeBackupForDbHavingHourAgoBackup_BackupSkipped(t *testing.T) {
 		StorageID: storage.ID,
 
 		Status: BackupStatusCompleted,
+
+		BackupTool: backups_config.BackupToolPgDump,
 
 		CreatedAt: time.Now().UTC().Add(-1 * time.Hour),
 	})
@@ -178,6 +182,8 @@ func Test_MakeBackupHavingFailedBackupWithoutRetries_BackupSkipped(t *testing.T)
 		Status:      BackupStatusFailed,
 		FailMessage: &failMessage,
 
+		BackupTool: backups_config.BackupToolPgDump,
+
 		CreatedAt: time.Now().UTC().Add(-1 * time.Hour),
 	})
 
@@ -242,6 +248,8 @@ func Test_MakeBackupHavingFailedBackupWithRetries_BackupCreated(t *testing.T) {
 
 		Status:      BackupStatusFailed,
 		FailMessage: &failMessage,
+
+		BackupTool: backups_config.BackupToolPgDump,
 
 		CreatedAt: time.Now().UTC().Add(-1 * time.Hour),
 	})
@@ -308,6 +316,8 @@ func Test_MakeBackupHavingFailedBackupWithRetries_RetriesCountNotExceeded(t *tes
 
 			Status:      BackupStatusFailed,
 			FailMessage: &failMessage,
+
+			BackupTool: backups_config.BackupToolPgDump,
 
 			CreatedAt: time.Now().UTC().Add(-1 * time.Hour),
 		})

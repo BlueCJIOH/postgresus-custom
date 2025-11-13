@@ -66,6 +66,7 @@ for version in $versions; do
         # Create symlinks to the version-specific binaries
         ln -sf "$pg_bin_dir/pg_dump" "$version_dir/bin/pg_dump"
         ln -sf "$pg_bin_dir/pg_dumpall" "$version_dir/bin/pg_dumpall"
+        ln -sf "$pg_bin_dir/pg_basebackup" "$version_dir/bin/pg_basebackup"
         ln -sf "$pg_bin_dir/psql" "$version_dir/bin/psql"
         ln -sf "$pg_bin_dir/pg_restore" "$version_dir/bin/pg_restore"
         ln -sf "$pg_bin_dir/createdb" "$version_dir/bin/createdb"
@@ -98,6 +99,10 @@ for version in $versions; do
         # Verify the correct version
         version_output=$("$version_dir/bin/pg_dump" --version 2>/dev/null | grep -o "pg_dump (PostgreSQL) [0-9]\+\.[0-9]\+")
         echo "    Version check: $version_output"
+        if [ -f "$version_dir/bin/pg_basebackup" ]; then
+            basebackup_output=$("$version_dir/bin/pg_basebackup" --version 2>/dev/null | grep -o "pg_basebackup (PostgreSQL) [0-9]\+\.[0-9]\+")
+            echo "    Base backup check: $basebackup_output"
+        fi
     fi
 done
 

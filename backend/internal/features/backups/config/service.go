@@ -160,6 +160,7 @@ func (s *BackupConfigService) initializeDefaultConfig(
 		DatabaseID:       databaseID,
 		IsBackupsEnabled: false,
 		StorePeriod:      period.PeriodWeek,
+		BackupTool:       BackupToolPgDump,
 		BackupInterval: &intervals.Interval{
 			Interval:  intervals.IntervalDaily,
 			TimeOfDay: &timeOfDay,
