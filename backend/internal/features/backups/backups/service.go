@@ -202,6 +202,10 @@ func (s *BackupService) MakeBackup(databaseID uuid.UUID, isLastTry bool) {
 		return
 	}
 
+	if !backupConfig.BackupTool.IsValid() {
+		backupConfig.BackupTool = backups_config.BackupToolPgDump
+	}
+
 	if !backupConfig.IsBackupsEnabled {
 		s.logger.Info("Backups are not enabled for this database")
 		return
@@ -230,6 +234,8 @@ func (s *BackupService) MakeBackup(databaseID uuid.UUID, isLastTry bool) {
 		BackupSizeMb: 0,
 
 		CreatedAt: time.Now().UTC(),
+
+		BackupTool: backupConfig.BackupTool,
 	}
 
 	if err := s.backupRepository.Save(backup); err != nil {
@@ -463,14 +469,14 @@ func (s *BackupService) CancelBackup(
 func (s *BackupService) GetBackupFile(
 	user *users_models.User,
 	backupID uuid.UUID,
-) (io.ReadCloser, error) {
+) (io.ReadCloser, *Backup, error) {
 	backup, err := s.backupRepository.FindByID(backupID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if backup.Database.WorkspaceID == nil {
-		return nil, errors.New("cannot download backup for database without workspace")
+		return nil, nil, errors.New("cannot download backup for database without workspace")
 	}
 
 	canAccess, _, err := s.workspaceService.CanUserAccessWorkspace(
@@ -478,15 +484,15 @@ func (s *BackupService) GetBackupFile(
 		user,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if !canAccess {
-		return nil, errors.New("insufficient permissions to download backup for this database")
+		return nil, nil, errors.New("insufficient permissions to download backup for this database")
 	}
 
 	storage, err := s.storageService.GetStorageByID(backup.StorageID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	s.auditLogService.WriteAuditLog(
@@ -499,7 +505,12 @@ func (s *BackupService) GetBackupFile(
 		backup.Database.WorkspaceID,
 	)
 
-	return storage.GetFile(backup.ID)
+	reader, err := storage.GetFile(backup.ID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return reader, backup, nil
 }
 
 func (s *BackupService) deleteBackup(backup *Backup) error {

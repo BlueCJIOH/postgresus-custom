@@ -62,6 +62,11 @@ for %%v in (%versions%) do (
         :: Check if installation actually worked by looking for pg_dump.exe
         if exist "!install_dir!\bin\pg_dump.exe" (
             echo PostgreSQL %%v client tools installed successfully
+            if exist "!install_dir!\bin\pg_basebackup.exe" (
+                echo Verified pg_basebackup.exe presence
+            ) else (
+                echo Warning: pg_basebackup.exe not found for version %%v
+            )
         ) else (
             echo Component selection failed, trying full installation...
             echo This may take up to 10 minutes even on powerful machines, please wait...
@@ -71,6 +76,11 @@ for %%v in (%versions%) do (
             :: Check again
             if exist "!install_dir!\bin\pg_dump.exe" (
                 echo PostgreSQL %%v installed successfully
+                if exist "!install_dir!\bin\pg_basebackup.exe" (
+                    echo Verified pg_basebackup.exe presence
+                ) else (
+                    echo Warning: pg_basebackup.exe not found for version %%v
+                )
             ) else (
                 echo Failed to install PostgreSQL %%v - No files found in installation directory
                 echo Checking what was created:

@@ -105,6 +105,10 @@ func (s *RestoreService) RestoreBackupWithAuth(
 		return errors.New("insufficient permissions to restore this backup")
 	}
 
+	if backup.BackupTool == backups_config.BackupToolPgBasebackup {
+		return errors.New("restoring pg_basebackup archives is not supported in the UI. Please perform a manual restore using PostgreSQL tooling")
+	}
+
 	backupDatabase, err := s.databaseService.GetDatabase(user, backup.DatabaseID)
 	if err != nil {
 		return err

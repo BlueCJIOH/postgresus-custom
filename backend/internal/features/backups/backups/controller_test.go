@@ -518,6 +518,7 @@ func Test_CancelBackup_InProgressBackup_SuccessfullyCancelled(t *testing.T) {
 		Status:           BackupStatusInProgress,
 		BackupSizeMb:     0,
 		BackupDurationMs: 0,
+		BackupTool:       backups_config.BackupToolPgDump,
 		CreatedAt:        time.Now().UTC(),
 	}
 
@@ -692,6 +693,7 @@ func createTestBackup(
 		Status:           BackupStatusCompleted,
 		BackupSizeMb:     10.5,
 		BackupDurationMs: 1000,
+		BackupTool:       backups_config.BackupToolPgDump,
 		CreatedAt:        time.Now().UTC(),
 	}
 

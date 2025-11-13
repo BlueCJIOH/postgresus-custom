@@ -1,6 +1,7 @@
 import type { Database } from '../../databases/model/Database';
 import type { Storage } from '../../storages';
 import { BackupStatus } from './BackupStatus';
+import { BackupTool } from './BackupTool';
 
 export interface Backup {
   id: string;
@@ -16,4 +17,5 @@ export interface Backup {
   backupDurationMs: number;
 
   createdAt: Date;
+  backupTool: BackupTool;
 }

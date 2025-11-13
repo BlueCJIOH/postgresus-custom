@@ -18,6 +18,8 @@ type BackupConfig struct {
 
 	StorePeriod period.Period `json:"storePeriod" gorm:"column:store_period;type:text;not null"`
 
+	BackupTool BackupTool `json:"backupTool" gorm:"column:backup_tool;type:text;not null"`
+
 	BackupIntervalID uuid.UUID           `json:"backupIntervalId"         gorm:"column:backup_interval_id;type:uuid;not null"`
 	BackupInterval   *intervals.Interval `json:"backupInterval,omitempty" gorm:"foreignKey:BackupIntervalID"`
 
@@ -80,6 +82,10 @@ func (b *BackupConfig) Validate() error {
 		return errors.New("store period is required")
 	}
 
+	if !b.BackupTool.IsValid() {
+		return errors.New("backup tool is required")
+	}
+
 	if b.CpuCount == 0 {
 		return errors.New("cpu count is required")
 	}
@@ -96,6 +102,7 @@ func (b *BackupConfig) Copy(newDatabaseID uuid.UUID) *BackupConfig {
 		DatabaseID:          newDatabaseID,
 		IsBackupsEnabled:    b.IsBackupsEnabled,
 		StorePeriod:         b.StorePeriod,
+		BackupTool:          b.BackupTool,
 		BackupIntervalID:    uuid.Nil,
 		BackupInterval:      b.BackupInterval.Copy(),
 		StorageID:           b.StorageID,

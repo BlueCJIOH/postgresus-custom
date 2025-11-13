@@ -1,6 +1,7 @@
 package backups
 
 import (
+	backups_config "postgresus-backend/internal/features/backups/config"
 	"postgresus-backend/internal/features/databases"
 	"postgresus-backend/internal/features/storages"
 	"time"
@@ -23,6 +24,8 @@ type Backup struct {
 	BackupSizeMb float64 `json:"backupSizeMb" gorm:"column:backup_size_mb;default:0"`
 
 	BackupDurationMs int64 `json:"backupDurationMs" gorm:"column:backup_duration_ms;default:0"`
+
+	BackupTool backups_config.BackupTool `json:"backupTool" gorm:"column:backup_tool;type:text;not null"`
 
 	CreatedAt time.Time `json:"createdAt" gorm:"column:created_at"`
 }

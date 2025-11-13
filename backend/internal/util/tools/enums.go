@@ -27,8 +27,9 @@ const (
 type PostgresqlExecutable string
 
 const (
-	PostgresqlExecutablePgDump PostgresqlExecutable = "pg_dump"
-	PostgresqlExecutablePsql   PostgresqlExecutable = "psql"
+	PostgresqlExecutablePgDump       PostgresqlExecutable = "pg_dump"
+	PostgresqlExecutablePsql         PostgresqlExecutable = "psql"
+	PostgresqlExecutablePgBasebackup PostgresqlExecutable = "pg_basebackup"
 )
 
 func GetPostgresqlVersionEnum(version string) PostgresqlVersion {

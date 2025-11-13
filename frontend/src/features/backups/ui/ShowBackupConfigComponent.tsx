@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { useMemo } from 'react';
 import { useEffect, useState } from 'react';
 
-import { type BackupConfig, backupConfigApi } from '../../../entity/backups';
+import { type BackupConfig, BackupTool, backupConfigApi } from '../../../entity/backups';
 import { BackupNotificationType } from '../../../entity/backups/model/BackupNotificationType';
 import type { Database } from '../../../entity/databases';
 import { Period } from '../../../entity/databases/model/Period';
@@ -48,6 +48,11 @@ const periodLabels = {
 const notificationLabels = {
   [BackupNotificationType.BackupFailed]: 'Backup failed',
   [BackupNotificationType.BackupSuccess]: 'Backup success',
+};
+
+const backupToolLabels: Record<BackupTool, string> = {
+  [BackupTool.PG_DUMP]: 'pg_dump (custom format)',
+  [BackupTool.PG_BASEBACKUP]: 'pg_basebackup (cluster archive)',
 };
 
 export const ShowBackupConfigComponent = ({ database }: Props) => {
@@ -109,6 +114,11 @@ export const ShowBackupConfigComponent = ({ database }: Props) => {
           <div className="mt-4 mb-1 flex w-full items-center">
             <div className="min-w-[150px]">Backup interval</div>
             <div>{backupInterval?.interval ? intervalLabels[backupInterval.interval] : ''}</div>
+          </div>
+
+          <div className="mb-1 flex w-full items-center">
+            <div className="min-w-[150px]">Backup method</div>
+            <div>{backupToolLabels[backupConfig.backupTool] ?? backupConfig.backupTool}</div>
           </div>
 
           {backupInterval?.interval === IntervalType.WEEKLY && (
